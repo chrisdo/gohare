@@ -15,10 +15,14 @@ type ModelChangeMsg struct {
 }
 
 type Storage interface {
-	GetTrackById(modes string) (*track.Model, error)
+	StorageReader
 	RemoveTrackById(modes string) bool
 	InsertTrack(m *track.Model)
-	GetAllTracks() []track.Model
 	CleanUp()
 	SubscribeForChanges(c chan ModelChangeMsg)
+}
+
+type StorageReader interface {
+	GetTrackById(modes string) (*track.Model, error)
+	GetAllTracks() []track.Model
 }

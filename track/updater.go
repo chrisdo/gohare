@@ -18,5 +18,6 @@ func (t *Model) UpdateByOpenSky(s *opensky.StateVector) {
 	if len(s.Squawk) > 0 {
 		t.SSR = s.Squawk
 	}
+	t.LastUpdate = s.TimePosition
 
 }

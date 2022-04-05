@@ -71,9 +71,11 @@ func (ms *MemoryStorage) GetAllTracks() []track.Model {
 	ms.Lock()
 	defer ms.Unlock()
 
-	tracks := make([]track.Model, len(ms.tracks))
+	tracks := make([]track.Model, 0)
 	for _, v := range ms.tracks {
-		tracks = append(tracks, *v)
+		if v.Modes != "" {
+			tracks = append(tracks, *v)
+		}
 	}
 	return tracks
 }

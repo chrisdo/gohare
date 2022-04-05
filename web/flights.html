@@ -1,0 +1,23 @@
+{{define "content"}}
+<div class="flights">
+   <p>FLIGHTS FLITHS</p>
+   <table class="table">
+      <thead>
+         <tr>
+            <th scope="col">Modes</th>
+            <th scope="col">Callsign</th>
+            <th scope="col">SSR</th>
+         </tr>
+      </thead>
+      <tbody>
+         {{range .Flights}}
+         <tr scope="row">
+            <td><a href="/flights?fid={{.Modes}}">{{.Modes}}</a></td>
+            <td>{{.Callsign}}</td>
+            <td>{{.SSR}}</td>
+         </tr>
+         {{end}}
+      </tbody>
+   </table>
+</div>
+{{end}}

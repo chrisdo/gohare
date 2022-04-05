@@ -4,6 +4,7 @@ import (
 	"github.com/chrisdo/gohare/opensky"
 	"github.com/chrisdo/gohare/storage"
 	"github.com/chrisdo/gohare/track"
+	"github.com/chrisdo/gohare/web"
 	"github.com/rs/zerolog/log"
 
 	"bufio"
@@ -40,6 +41,8 @@ func main() {
 		}
 	}()
 
+	server := web.NewServer(":8080", storage)
+	server.StartServer()
 	//TODO: this should run in a go routine, but then we need something that blocks the code afterwards
 	bufio.NewReader(os.Stdin).ReadBytes('\n')
 }
