@@ -4,6 +4,7 @@ import (
 	"github.com/chrisdo/gohare/opensky"
 )
 
+//UpdateByOpenSky updates a given track model by an opensky statevector
 func (t *Model) UpdateByOpenSky(s *opensky.StateVector) {
 	if len(s.Callsign) > 0 {
 		t.Callsign = s.Callsign

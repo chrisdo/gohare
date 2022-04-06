@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"embed"
-	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -11,14 +10,41 @@ import (
 	"time"
 
 	"github.com/chrisdo/gohare/storage"
+	"github.com/rs/zerolog/log"
 )
 
 //go:embed *
 var files embed.FS
 
+var (
+	home         = parse("main.html")
+	flights      = parse("flights.html")
+	singleFlight = parse("flight.html")
+)
+
 type Server struct {
 	server        http.Server
 	storageReader storage.StorageReader
+}
+
+type FlightData struct {
+	Error      error
+	Source     string
+	Modes      string
+	Callsign   string
+	SSR        string
+	LastUpdate time.Time
+}
+
+type FlightDataShort struct {
+	Modes    string
+	Callsign string
+	SSR      string
+}
+
+type FlightList struct {
+	Error   error
+	Flights []FlightDataShort
 }
 
 func NewServer(addr string, storageReader storage.StorageReader) *Server {
@@ -39,26 +65,32 @@ func (s *Server) StopServer() {
 }
 
 func mainHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := parse("main.html") //later move parse to global to not parse it with each call
-	if err != nil {
-		fmt.Println(err)
-	}
-	tmpl.Execute(w, nil)
+	log.Trace().Msgf("call to main from %s", r.RemoteAddr)
+	home.Execute(w, nil)
+}
+
+func singleFlightHandler(w io.Writer, f FlightData) error {
+	return singleFlight.Execute(w, f)
+}
+
+func flightsHandler(w io.Writer, f FlightList) error {
+	return flights.Execute(w, f)
 }
 
 func generalFlightsHandler(storage storage.StorageReader) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fid := r.URL.Query().Get("fid")
 		if len(fid) == 0 {
+			log.Info().Msg("Handling flight list")
 			err := flightsHandler(w, getFlightList(storage))
 			if err != nil {
-				fmt.Println(err)
+				log.Err(err)
 			}
 		} else {
-			fmt.Printf("Going for single flit Handler with fid=%s\n", fid)
+			log.Info().Str("ModesId", fid).Msg("Handling single flight")
 			err := singleFlightHandler(w, getSingleFlight(storage, fid))
 			if err != nil {
-				fmt.Println(err)
+				log.Err(err)
 			}
 		}
 	}
@@ -66,7 +98,7 @@ func generalFlightsHandler(storage storage.StorageReader) func(w http.ResponseWr
 
 func getFlightList(storage storage.StorageReader) FlightList {
 	tracks := storage.GetAllTracks()
-	fmt.Printf("Got %d tracks\n", len(tracks))
+	log.Debug().Msgf("Got %d tracks\n", len(tracks))
 	result := make([]FlightDataShort, len(tracks))
 	for i, track := range tracks {
 		result[i] = FlightDataShort{Modes: track.Modes, Callsign: track.Callsign, SSR: track.SSR}
@@ -74,58 +106,21 @@ func getFlightList(storage storage.StorageReader) FlightList {
 	sort.Slice(result, func(i, j int) bool {
 		return result[j].Modes < result[i].Modes
 	})
-	fmt.Printf("%v\n", result)
+	log.Debug().Msgf("Tracks: %v\n", result)
 	return FlightList{nil, result}
 }
 
 func getSingleFlight(storage storage.StorageReader, fid string) FlightData {
 	track, err := storage.GetTrackById(fid)
 	if err != nil {
-		fmt.Printf("Error: %s", err)
+		log.Err(err)
 		return FlightData{Error: err}
 	}
-	fmt.Printf("%v\n", track)
+	log.Debug().Str("Modesid", fid).Msgf("%v", track)
 	return FlightData{Source: track.Source, Modes: track.Modes, Callsign: track.Callsign,
 		SSR: track.SSR, LastUpdate: track.LastUpdate}
 }
 
-func parse(file string) (*template.Template, error) {
-	return template.New("layout.html").ParseFS(files, "layout.html", file)
-}
-
-type FlightData struct {
-	Error      error
-	Source     string
-	Modes      string
-	Callsign   string
-	SSR        string
-	LastUpdate time.Time
-}
-
-func singleFlightHandler(w io.Writer, f FlightData) error {
-	tmpl, err := parse("flight.html") //later move parse to global to not parse it with each call
-	if err != nil {
-		return err
-	}
-	return tmpl.Execute(w, f)
-}
-
-type FlightDataShort struct {
-	Modes    string
-	Callsign string
-	SSR      string
-}
-
-type FlightList struct {
-	Error   error
-	Flights []FlightDataShort
-}
-
-func flightsHandler(w io.Writer, f FlightList) error {
-
-	tmpl, err := parse("flights.html") //later move parse to global to not parse it with each call
-	if err != nil {
-		return err
-	}
-	return tmpl.Execute(w, f)
+func parse(file string) *template.Template {
+	return template.Must(template.New("layout.html").ParseFS(files, "layout.html", file))
 }

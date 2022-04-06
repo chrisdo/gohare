@@ -7,8 +7,6 @@ import (
 	"github.com/chrisdo/gohare/web"
 	"github.com/rs/zerolog/log"
 
-	"bufio"
-	"os"
 	"time"
 )
 
@@ -29,6 +27,7 @@ func main() {
 
 	go oskyReader.Connect(oskyChan)
 
+	//this is actually only really useful when having multiple readers, but lets keep it for learning
 	go func() {
 		for {
 			select {
@@ -43,8 +42,6 @@ func main() {
 
 	server := web.NewServer(":8080", storage)
 	server.StartServer()
-	//TODO: this should run in a go routine, but then we need something that blocks the code afterwards
-	bufio.NewReader(os.Stdin).ReadBytes('\n')
 }
 
 func processOskyVector(storage storage.Storage, r *opensky.StateVectorResponse) {
