@@ -1,0 +1,24 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+package trackStoreService;
+option go_package = "github.com/chrisdo/gohare/trackstoreservice";
+
+service TrackStoreService {
+    rpc GetFlightList(google.protobuf.Empty) returns (FlightList);
+    rpc GetFlight (FlightRequest) returns (Flight);
+}
+
+message FlightRequest {
+    string modesId = 1;
+}
+
+message Flight {
+    string modesId = 1;
+    string callsign = 2;
+    string SSR = 3;
+    int64 lastUpdate = 4;
+}
+
+message FlightList {
+    repeated Flight flights = 1;
+}
